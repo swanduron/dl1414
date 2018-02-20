@@ -67,22 +67,39 @@ class Dl1414(object):
             self.rclk.on()
             self.rclk.off()
 
-    def show_content(self, content, direction='left', duration=5000):
+    def show_content(self, content, direction='left', duration=500):
         content = self.content_role(content)
-        time_base = duration//20
+        time_base = duration//self.display_length
         if direction == self.edge:
             content = content.strip()
         if direction == 'left':
-            for i in range(20):
+            for i in range(self.display_length):
                 time.sleep_ms(time_base)
                 content = (content+' ')[1:]
                 self.display_writer(content)
         else:
-            for i in range(20):
+            for i in range(self.display_length):
                 time.sleep_ms(time_base)
-                content = ' '+content[:20]
+                content = ' '+content[:self.display_length]
                 self.display_writer(content)
 
+    def move_content(self, direction='left', duration=500):
+        if not self.display_buffer:
+            return None
+        content = self.content_role(self.display_buffer)
+        time_base = duration//self.display_length
+        if direction == self.edge:
+            content = content.strip()
+        if direction == 'left':
+            for i in range(self.display_length):
+                time.sleep_ms(time_base)
+                content = (content+' ')[1:]
+                self.display_writer(content)
+        else:
+            for i in range(self.display_length):
+                time.sleep_ms(time_base)
+                content = ' '+content[:self.display_length]
+                self.display_writer(content)
 
 if __name__ == '__main__':
 
