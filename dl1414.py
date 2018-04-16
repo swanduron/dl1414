@@ -17,12 +17,12 @@ class Dl1414(object):
         self.edge = edge
         self.display_buffer = ''
 
-        self.rclk.off()
-        self.digit0.off()
-        self.digit1.off()
+        self.rclk.value(0)
+        self.digit0.value(0)
+        self.digit1.value(0)
         self.spi.write(b'\xff\xff')
-        self.rclk.on()
-        self.rclk.off()
+        self.rclk.value(1)
+        self.rclk.value(0)
         self.display_writer()
 
     def content_role(self, content):
@@ -58,14 +58,14 @@ class Dl1414(object):
 
         for each_char in working_content:
             self.spi.write(b'\xff\x00')  # 拉高片选使得所有1414不可操作，避免之前数据的干扰
-            self.rclk.on()
-            self.rclk.off()
+            self.rclk.value(1)
+            self.rclk.value(0)
             self.spi.write(bytes([each_char[1], ord(each_char[0])]))  # 片选+目标字
             digit0_value, digit1_value = self.char_mapping[each_char[2]]
             self.digit0.value(digit0_value)
             self.digit1.value(digit1_value)
-            self.rclk.on()
-            self.rclk.off()
+            self.rclk.value(1)
+            self.rclk.value(0)
 
     def show_content(self, content, direction='left', duration=500):
         content = self.content_role(content)
