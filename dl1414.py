@@ -75,8 +75,8 @@ class Dl1414(object):
         if direction == 'left':
             for i in range(self.display_length):
                 time.sleep_ms(time_base)
-                content = (content+' ')[1:]
                 self.display_writer(content)
+                content = (content+' ')[1:]
         else:
             for i in range(self.display_length):
                 time.sleep_ms(time_base)
@@ -93,13 +93,44 @@ class Dl1414(object):
         if direction == 'left':
             for i in range(self.display_length):
                 time.sleep_ms(time_base)
-                content = (content+' ')[1:]
                 self.display_writer(content)
+                content = (content+' ')[1:]
         else:
             for i in range(self.display_length):
                 time.sleep_ms(time_base)
                 content = ' '+content[:self.display_length]
                 self.display_writer(content)
+
+    def slide_in(self, content, direction='right-left', duration=500):
+        content = self.content_role(content)
+        time_base = duration // self.display_length
+        if direction == 'right-left':
+            for i in range(len(self.display_buffer)):
+                time.sleep_ms(time_base)
+                self.display_writer(content[:i + 1])
+        else:
+            content = content + ' ' * 24
+            for i in range(self.display_length):
+                time.sleep_ms(time_base)
+                content = content[:-1]
+                self.display_writer(content[-self.display_length:])
+
+    def slide_in_memory(self, direction='right-left', duration=500):
+        if not self.display_buffer:
+            return None
+        content = self.content_role(self.display_buffer)
+        time_base = duration // self.display_length
+        if direction == 'right-left':
+            for i in range(len(self.display_buffer)):
+                time.sleep_ms(time_base)
+                self.display_writer(content[:i+1])
+        else:
+            content = content + ' ' * 24
+            for i in range(self.display_length):
+                time.sleep_ms(time_base)
+                content = content[:-1]
+                self.display_writer(content[-self.display_length:])
+
 
 if __name__ == '__main__':
 
