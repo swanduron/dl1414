@@ -22,8 +22,8 @@ DS3231_REG_OFF    = 0x10
 DS3231_REG_TEMP   = b'\x11'
 
 class DS3231(object):
-    def __init__(self):
-        self.i2c =I2C(1,freq=100000)
+    def __init__(self, i2c_bus=1):
+        self.i2c =I2C(i2c_bus,freq=100000)
     def DATE(self, dat=[]):
         if dat==[]:
             t = []
