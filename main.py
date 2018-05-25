@@ -1,7 +1,7 @@
 import machine
 import time
 import _thread
-# import bme280
+import bme280
 from dl1414 import Dl1414
 from ds3231 import DS3231
 from pyb import UART, LED, RTC
@@ -36,6 +36,8 @@ gps_synbit = '!'
 time_buffer = ()
 seen_sat = '0'
 tick_counter = int(time.time())
+
+global_i2c = machine.I2C(2)
 
 
 def ds_chip_sync(now_date, ds_ins):
@@ -115,8 +117,10 @@ def gps_reader(uart_interface):
 
 uart_interface = UART(2, 9600)
 display = Dl1414(1, 'Y1', 'Y2', 'Y3', display_length=24)
-ds_chip = DS3231(2)
+ds_chip = DS3231(global_i2c)
 _thread.start_new_thread(gps_reader, (uart_interface,))
+
+bme = bme280.BME280(i2c=global_i2c)
 
 string_buffer = ''
 for i in TEST_STRING:
@@ -148,7 +152,9 @@ while True:
             year, month, day, DAY_OF_WEEK_IN_DS[int(week)] + gps_synbit, hour, minute, second)
         if time.time() - tick_counter > 5:
             display.move_content()
-            display.slide_in('%s DAYS IN YEAR %s' % (day_in_year, year))
+            # display.slide_in('%s DAYS IN YEAR %s' % (day_in_year, year))
+            bme_value = bme.values
+            display.slide_in('%s_%s_%s' % (bme_value[0], bme_value[2], bme_value[1].upper()))
             time.sleep(3)
             tick_counter = time.time()
             display.move_content()
