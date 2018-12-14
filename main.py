@@ -36,7 +36,7 @@ gps_synbit = '!'
 time_buffer = ()
 seen_sat = '0'
 tick_counter = int(time.time())
-
+bme_sensor = ('0.00C', '0.00KPH', '0.00%')
 global_i2c = machine.I2C(2)
 
 
@@ -114,13 +114,25 @@ def gps_reader(uart_interface):
             time_buffer = ()
             uart_interface.write('$PSRF104')
 
+def bme_get_value(i2c):
+    global bme_sensor
+    bme = bme280.BME280(i2c=i2c)
+    while True:
+        time.sleep(2)
+        try:
+            bme_sensor = bme.values
+        except:
+            bme_sensor = ('0.00C', '0.00KPH', '0.00%')
+            try:
+                bme = bme280.BME280(i2c=i2c)
+            except:
+                pass
 
 uart_interface = UART(2, 9600)
 display = Dl1414(1, 'Y1', 'Y2', 'Y3', display_length=24)
 ds_chip = DS3231(global_i2c)
 _thread.start_new_thread(gps_reader, (uart_interface,))
-
-bme = bme280.BME280(i2c=global_i2c)
+_thread.start_new_thread(bme_get_value, (global_i2c,))
 
 string_buffer = ''
 for i in TEST_STRING:
@@ -131,39 +143,45 @@ for i in TEST_STRING:
     time.sleep_ms(20)
 display.move_content()
 
+old_content = 0
+
 while True:
     time.sleep(0.1)
-    if time_buffer or True:
-        if gps_synbit == '@':
-            year, month, day, hour, minute, second, week, day_in_year = [zfill(i) for i in time_buffer]
-            display_string = TIME_TEMPLATE % (
-            year, month, day, DAY_OF_WEEK[int(week)] + gps_synbit, hour, minute, second)
-        else:
-            year, month, day = ds_chip.DATE()
-            year = year + 2000
-            C = year // 100
-            y = year % 100
-            hour, minute, second = ds_chip.TIME()
-            week = abs((C // 4 - 2 * C + y + y // 4 + (26 * (month + 1)) // 10 + day - 1) % 7)
-            day_in_year = get_day_in_year(year, month, day)
-            year, month, day, hour, minute, second, week, day_in_year = [zfill(i) for i in (
-                year, month, day, hour, minute, second, week, day_in_year)]
-            display_string = TIME_TEMPLATE % (
-            year, month, day, DAY_OF_WEEK_IN_DS[int(week)] + gps_synbit, hour, minute, second)
-        if time.time() - tick_counter > 5:
+    if gps_synbit == '@':
+        year, month, day, hour, minute, second, week, day_in_year = [zfill(i) for i in time_buffer]
+        display_string = TIME_TEMPLATE % (
+        year, month, day, DAY_OF_WEEK[int(week)] + gps_synbit, hour, minute, second)
+    else:
+        year, month, day = ds_chip.DATE()
+        year = year + 2000
+        C = year // 100
+        y = year % 100
+        hour, minute, second = ds_chip.TIME()
+        week = abs((C // 4 - 2 * C + y + y // 4 + (26 * (month + 1)) // 10 + day - 1) % 7)
+        day_in_year = get_day_in_year(year, month, day)
+        year, month, day, hour, minute, second, week, day_in_year = [zfill(i) for i in (
+            year, month, day, hour, minute, second, week, day_in_year)]
+        display_string = TIME_TEMPLATE % (
+        year, month, day, DAY_OF_WEEK_IN_DS[int(week)] + gps_synbit, hour, minute, second)
+
+    if old_content != second:
+        tick_counter += 1
+        old_content = second
+
+    if tick_counter >= 6:
+        if tick_counter == 6:
             display.move_content()
-            # display.slide_in('%s DAYS IN YEAR %s' % (day_in_year, year))
-            bme_value = bme.values
-            display.slide_in('%s_%s_%s' % (bme_value[0], bme_value[2], bme_value[1].upper()))
-            time.sleep(3)
-            tick_counter = time.time()
+            display.slide_in('%s_%s_%s' % (bme_sensor[0], bme_sensor[2], bme_sensor[1].upper()))
+        elif tick_counter == 9:
             display.move_content()
             display.slide_in(display_string)
             ds_chip_sync(time_buffer, ds_chip)
-        else:
-            display.display_writer(display_string)
+            tick_counter = 0
+
     else:
-        display.display_writer('LOSS CONNECTION WITH GPS')
+        display.display_writer(display_string)
+
+
 
 # if __name__ == '__main__':
 #     print('Simple for bme280')
